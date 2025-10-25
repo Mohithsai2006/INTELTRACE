@@ -62,6 +62,8 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+        display: ['Orbitron', 'sans-serif'],
+        tactical: ['Space Grotesk', 'sans-serif'],
       },
       backgroundImage: {
         'gradient-primary': 'var(--gradient-primary)',

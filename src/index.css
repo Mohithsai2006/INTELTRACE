@@ -95,4 +95,34 @@ All colors MUST be HSL.
   * {
     transition: var(--transition-fast);
   }
+
+  /* Tactical cursor glow */
+  body {
+    cursor: default;
+  }
+
+  button, a, [role="button"] {
+    cursor: pointer;
+    position: relative;
+  }
+
+  button:hover::after, a:hover::after, [role="button"]:hover::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: radial-gradient(circle at center, hsl(189 94% 43% / 0.1), transparent 70%);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  /* Command log typewriter effect */
+  @keyframes typewriter {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  @keyframes blink {
+    50% { border-color: transparent; }
+  }
 }
