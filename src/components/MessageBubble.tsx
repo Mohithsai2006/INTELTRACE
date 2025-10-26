@@ -104,7 +104,11 @@ const MessageBubble = ({ message }: MessageBubbleProps) => {
           
           <p className="text-sm leading-relaxed whitespace-pre-wrap font-tactical">
             {displayedText}
-            {isTyping && <span className="inline-block w-1 h-4 ml-1 bg-primary animate-pulse" />}
+            {isTyping && (
+              <span className="inline-block w-1 h-4 ml-1 bg-primary animate-pulse glow-primary" 
+                style={{ boxShadow: '0 0 10px hsl(var(--primary))' }}
+              />
+            )}
           </p>
 
           {message.segmentationMask && !isTyping && (

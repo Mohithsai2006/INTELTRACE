@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Send, Upload, X, Download, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Send, Upload, X, Download, Layers, ImagePlus, FileImage } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import MessageBubble from './MessageBubble';
+import SegmentationViewer from './SegmentationViewer';
 
 interface Message {
   id: string;
@@ -27,8 +28,11 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [intelMode, setIntelMode] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerData, setViewerData] = useState<{ original: string; mask: string } | null>(null);
 
   const handleSend = () => {
     if (!inputValue.trim() && !uploadedImage) return;
@@ -92,9 +96,35 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast({
+          title: 'Invalid File Type',
+          description: 'Please upload a JPG, PNG, or WEBP image.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: 'File Too Large',
+          description: 'Image must be less than 10MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         setUploadedImage(e.target?.result as string);
+        setUploadedFileName(file.name);
+        toast({
+          title: 'Image Uploaded',
+          description: `${file.name} ready for analysis.`,
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -104,17 +134,60 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setUploadedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+    
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a JPG, PNG, or WEBP image.',
+        variant: 'destructive',
+      });
+      return;
     }
+
+    // Validate file size
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Image must be less than 10MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadedImage(e.target?.result as string);
+      setUploadedFileName(file.name);
+      toast({
+        title: 'Image Uploaded',
+        description: `${file.name} ready for analysis.`,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openSegmentationViewer = (original: string, mask: string) => {
+    setViewerData({ original, mask });
+    setViewerOpen(true);
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <>
+      <AnimatePresence>
+        {viewerOpen && viewerData && (
+          <SegmentationViewer
+            originalImage={viewerData.original}
+            segmentationMask={viewerData.mask}
+            onClose={() => setViewerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="border-b border-border bg-card/30 backdrop-blur-sm px-6 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -165,7 +238,22 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
             </motion.div>
           ) : (
             messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
+              <div key={message.id}>
+                <MessageBubble message={message} />
+                {message.segmentationMask && message.image && (
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 font-mono text-xs"
+                      onClick={() => openSegmentationViewer(message.image!, message.segmentationMask!)}
+                    >
+                      <Layers className="w-4 h-4" />
+                      VIEW_OVERLAY
+                    </Button>
+                  </div>
+                )}
+              </div>
             ))
           )}
         </div>
@@ -174,34 +262,63 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
       {/* Input Area */}
       <div className="border-t border-border bg-card">
         <div className="max-w-4xl mx-auto p-4">
-          {uploadedImage && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-3 relative inline-block"
-            >
-              <img 
-                src={uploadedImage} 
-                alt="Uploaded" 
-                className="h-24 rounded border-2 border-primary glow-primary"
-              />
-              <Button
-                size="icon"
-                variant="destructive"
-                className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                onClick={() => setUploadedImage(null)}
+          <AnimatePresence>
+            {uploadedImage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="mb-3 p-3 bg-sidebar border border-primary/30 rounded-lg inline-flex items-center gap-3"
               >
-                <X className="h-3 w-3" />
-              </Button>
-            </motion.div>
-          )}
+                <div className="relative">
+                  <img 
+                    src={uploadedImage} 
+                    alt="Uploaded preview" 
+                    className="h-16 w-16 rounded border border-primary object-cover glow-primary"
+                  />
+                  <div className="absolute -top-1 -left-1 p-1 rounded-full bg-primary">
+                    <FileImage className="w-3 h-3 text-primary-foreground" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-mono text-foreground truncate max-w-[200px]">{uploadedFileName || 'Image'}</p>
+                  <p className="text-xs text-muted-foreground font-mono">[READY_FOR_ANALYSIS]</p>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 hover:bg-destructive/20"
+                  onClick={() => {
+                    setUploadedImage(null);
+                    setUploadedFileName(null);
+                  }}
+                >
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           <div 
-            className={`relative flex gap-2 ${isDragging ? 'opacity-50' : ''}`}
+            className={`relative flex gap-2 transition-all ${
+              isDragging ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-[1.02]' : ''
+            }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
+            {isDragging && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-lg flex items-center justify-center z-10 backdrop-blur-sm"
+              >
+                <div className="text-center">
+                  <ImagePlus className="w-12 h-12 text-primary mx-auto mb-2 glow-primary" />
+                  <p className="font-mono text-sm text-primary font-bold">[DROP_IMAGE_HERE]</p>
+                </div>
+              </motion.div>
+            )}
             <div className="relative flex-1">
               <Textarea
                 value={inputValue}
@@ -238,7 +355,8 @@ const ChatInterface = ({ onStatusChange }: ChatInterfaceProps) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
