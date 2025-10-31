@@ -19,7 +19,8 @@ const navigationItems = [
 
 const NavigationDrawer = () => {
   return (
-    <Drawer>
+    // THE FIX IS HERE: modal={false}
+    <Drawer modal={false}>
       <DrawerTrigger asChild>
         <Button variant="ghost" size="icon" className="hover:bg-sidebar-accent">
           <Menu className="w-5 h-5" />

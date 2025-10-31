@@ -1,20 +1,50 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, MessageSquare, Settings, Shield } from 'lucide-react';
+import { Plus, MessageSquare, Settings, Shield, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useAuth } from '@/context/AuthContext';
+import axios from 'axios';
+import { cn } from '@/lib/utils';
+
+const API_URL = 'http://localhost:5001/api/conversations';
 
 interface Conversation {
-  id: string;
+  _id: string;
   title: string;
-  timestamp: Date;
+  updatedAt: string;
 }
 
-const Sidebar = () => {
-  const conversations: Conversation[] = [
-    { id: '1', title: 'Satellite imagery analysis - Urban sector', timestamp: new Date() },
-    { id: '2', title: 'Drone feed threat detection', timestamp: new Date(Date.now() - 86400000) },
-    { id: '3', title: 'Camouflage pattern recognition', timestamp: new Date(Date.now() - 172800000) },
-  ];
+interface SidebarProps {
+  selectedConversationId: string | null;
+  onSelectConversation: (id: string | null) => void;
+}
+
+const Sidebar = ({ selectedConversationId, onSelectConversation }: SidebarProps) => {
+  const { logout, token } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const { data } = await axios.get(API_URL, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setConversations(data);
+      } catch (error) {
+        console.error('Failed to fetch conversations', error);
+      }
+    };
+    fetchConversations();
+  }, [token]);
+  
+  // Note: Add a socket listener here to listen for 'newConversation'
+  // and update the conversations list in real-time.
+  // For simplicity, we'll rely on fetch for now.
+
+  const handleNewAnalysis = () => {
+    onSelectConversation(null); // Deselect current to start a new chat
+  };
 
   return (
     <motion.div
@@ -35,7 +65,11 @@ const Sidebar = () => {
           </div>
         </div>
         
-        <Button className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 font-mono text-xs tracking-wide" size="sm">
+        <Button 
+          className="w-full justify-start gap-2 bg-primary hover:bg-primary/90 font-mono text-xs tracking-wide" 
+          size="sm"
+          onClick={handleNewAnalysis}
+        >
           <Plus className="w-4 h-4" />
           NEW_ANALYSIS
         </Button>
@@ -49,18 +83,22 @@ const Sidebar = () => {
           </div>
           {conversations.map((conv, i) => (
             <motion.button
-              key={conv.id}
+              key={conv._id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="w-full text-left p-3 rounded-lg hover:bg-sidebar-accent transition-colors group"
+              className={cn(
+                "w-full text-left p-3 rounded-lg hover:bg-sidebar-accent transition-colors group",
+                selectedConversationId === conv._id && "bg-sidebar-accent border border-primary/50"
+              )}
+              onClick={() => onSelectConversation(conv._id)}
             >
               <div className="flex items-start gap-2">
                 <MessageSquare className="w-4 h-4 mt-0.5 text-primary opacity-60 group-hover:opacity-100 transition-opacity" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-tactical font-medium truncate">{conv.title}</p>
                   <p className="text-xs text-muted-foreground font-mono">
-                    {conv.timestamp.toLocaleDateString()}
+                    {new Date(conv.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -70,10 +108,14 @@ const Sidebar = () => {
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
         <Button variant="ghost" className="w-full justify-start gap-2 font-mono text-xs" size="sm">
           <Settings className="w-4 h-4" />
           SETTINGS
+        </Button>
+        <Button variant="ghost" className="w-full justify-start gap-2 font-mono text-xs text-destructive/80 hover:text-destructive" size="sm" onClick={logout}>
+          <LogOut className="w-4 h-4" />
+          LOGOUT
         </Button>
       </div>
     </motion.div>
