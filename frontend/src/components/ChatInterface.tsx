@@ -33,11 +33,14 @@ interface ChatInterfaceProps {
   onNewConversation: (id: string) => void;
 }
 
-const SOCKET_URL = 'http://localhost:5001';
-const API_URL = 'http://localhost:5001/api/conversations';
+// const SOCKET_URL = 'http://localhost:5001';
+// const API_URL = 'http://localhost:5001/api/conversations';
+// const BACKEND_URL = 'http://localhost:5001';
 
-// We must construct the full URL for images
-const BACKEND_URL = 'http://localhost:5001';
+const SOCKET_URL = 'https://inteltrace-bnam.onrender.com'; // <-- UPDATED
+const API_URL = 'https://inteltrace-bnam.onrender.com/api/conversations'; // <-- UPDATED
+const BACKEND_URL = 'https://inteltrace-bnam.onrender.com'; // <-- UPDATED
+
 
 // This is the interface MessageBubble.tsx expects
 interface MessageBubbleProps {
