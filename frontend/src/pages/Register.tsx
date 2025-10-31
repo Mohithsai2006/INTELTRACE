@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-const API_URL = 'http://localhost:5001/api/auth';
+// const API_URL = 'http://localhost:5001/api/auth';
+const API_URL = 'https://inteltrace-bnam.onrender.com/api/auth'; // <-- UPDATED
 
 const Register = () => {
   const [username, setUsername] = useState('');
