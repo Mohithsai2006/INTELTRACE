@@ -7,7 +7,8 @@ import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import { cn } from '@/lib/utils';
 
-const API_URL = 'http://localhost:5001/api/conversations';
+// const API_URL = 'http://localhost:5001/api/conversations';
+const API_URL = 'https://inteltrace-bnam.onrender.com/api/conversations'; // <-- UPDATED
 
 interface Conversation {
   _id: string;
@@ -26,6 +27,7 @@ const Sidebar = ({ selectedConversationId, onSelectConversation }: SidebarProps)
 
   useEffect(() => {
     const fetchConversations = async () => {
+      if (!token) return; // Don't fetch if no token
       try {
         const { data } = await axios.get(API_URL, {
           headers: { Authorization: `Bearer ${token}` },

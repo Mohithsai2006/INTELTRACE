@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import axios from 'axios';
 
 // const API_URL = 'http://localhost:5001/api/auth';
-const API_URL = 'https://inteltrace-bnam.onrender.com';
+const API_URL = 'https://inteltrace-bnam.onrender.com/api/auth'; // <-- UPDATED (Added /api/auth)
+
 interface User {
   _id: string;
   username: string;
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const validateToken = async () => {
       if (token) {
         try {
+          // This now correctly calls /api/auth/me
           const { data } = await axios.get(`${API_URL}/me`, {
             headers: { Authorization: `Bearer ${token}` },
           });

@@ -2,11 +2,11 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const dotenv = require('dotenv');
-const cors = require('cors');
+const cors = require('cors'); // We will configure this
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
-const passport = require('passport'); // <-- ADDED
+const passport = require('passport');
 
 const connectDB = require('./config/db.js');
 const authRoutes = require('./routes/auth.js');
@@ -24,12 +24,24 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(express.json({ limit: '10mb' })); // Allow large payloads for base64 images
-app.use(cors()); // Allow cross-origin requests
+app.use(express.json({ limit: '10mb' }));
+
+// --- CORS CONFIGURATION ---
+// This is the fix. We are now allowing your Vercel URL.
+const corsOptions = {
+  origin: [
+    'http://localhost:5173', // For local dev
+    'https://inteltrace-delta.vercel.app' // Your live frontend
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+};
+app.use(cors(corsOptions)); // <-- UPDATED
+// --- END OF CORS ---
+
 
 // --- PASSPORT MIDDLEWARE ---
-app.use(passport.initialize()); // <-- ADDED
-require('./config/passport')(passport); // <-- ADDED
+app.use(passport.initialize());
+require('./config/passport')(passport);
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -45,10 +57,7 @@ app.use('/uploads', express.static(uploadsDir));
 // --- Socket.io Setup ---
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: 'http://localhost:5173', // Your React frontend URL
-    methods: ['GET', 'POST'],
-  },
+  cors: corsOptions, // <-- UPDATED (use the same options)
 });
 
 // Socket.io Authentication Middleware
